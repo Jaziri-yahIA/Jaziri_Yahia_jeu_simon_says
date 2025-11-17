@@ -1,11 +1,441 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Simon Says - Jeu de Mémoire</title>
+    <style>
+        /* Styles de base - on améliorera dans les commits suivants */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .jeu-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 2rem;
+        }
+
+        .score-container {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 25px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .score-box {
+            text-align: center;
+        }
+
+        .score-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+
+        .score-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .niveau {
+            font-size: 1.2rem;
+            margin: 15px 0;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+
+        .message {
+            font-size: 1.1rem;
+            margin: 15px 0;
+            min-height: 25px;
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .plateau-jeu {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 25px 0;
+        }
+
+        .bouton-couleur {
+            height: 140px;
+            border-radius: 15px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            box-shadow: 0 6px 0 rgba(0,0,0,0.2);
+        }
+
+        .bouton-couleur:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 rgba(0,0,0,0.2);
+        }
+
+        .bouton-couleur.active {
+            transform: scale(0.95);
+            box-shadow: 0 0 20px white;
+        }
+
+        #rouge {
+            background-color: #e74c3c;
+        }
+
+        #bleu {
+            background-color: #3498db;
+        }
+
+        #vert {
+            background-color: #2ecc71;
+        }
+
+        #jaune {
+            background-color: #f1c40f;
+        }
+
+        .controles {
+            margin-top: 20px;
+        }
+
+        button {
+            background-color: #9b59b6;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1rem;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 0 #8e44ad;
+        }
+
+        button:hover {
+            background-color: #8e44ad;
+        }
+
+        button:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #8e44ad;
+        }
+
+        button:disabled {
+            background-color: #bdc3c7;
+            box-shadow: 0 4px 0 #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .instructions {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: left;
+            font-size: 0.9rem;
+            color: #495057;
+        }
+
+        .instructions h3 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .instructions ul {
+            padding-left: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: 5px;
+        }
+
+        /* Animation simple */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .pulse {
+            animation: pulse 0.5s ease-in-out;
+        }
+    </style>
 </head>
 <body>
-    
+    <div class="jeu-container">
+        <h1>Simon Says</h1>
+        
+        <div class="score-container">
+            <div class="score-box">
+                <div class="score-label">SCORE ACTUEL</div>
+                <div class="score-value" id="score-actuel">0</div>
+            </div>
+            <div class="score-box">
+                <div class="score-label">MEILLEUR SCORE</div>
+                <div class="score-value" id="meilleur-score">0</div>
+            </div>
+        </div>
+        
+        <div class="niveau" id="niveau">Niveau: 1</div>
+        <div class="message" id="message">Appuyez sur DÉMARRER pour jouer</div>
+        
+        <div class="plateau-jeu">
+            <button class="bouton-couleur" id="rouge"></button>
+            <button class="bouton-couleur" id="bleu"></button>
+            <button class="bouton-couleur" id="vert"></button>
+            <button class="bouton-couleur" id="jaune"></button>
+        </div>
+        
+        <div class="controles">
+            <button id="bouton-demarrer">DÉMARRER</button>
+            <button id="bouton-reinitialiser" disabled>RÉINITIALISER</button>
+        </div>
+        
+        <div class="instructions">
+            <h3>Comment jouer :</h3>
+            <ul>
+                <li>Simon va afficher une séquence de couleurs</li>
+                <li>Mémorisez la séquence et reproduisez-la</li>
+                <li>À chaque niveau, la séquence s'allonge</li>
+                <li>Faites le plus haut score possible !</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // === ÉLÉMENTS DU DOM ===
+        const boutonsCouleur = document.querySelectorAll('.bouton-couleur');
+        const boutonDemarrer = document.getElementById('bouton-demarrer');
+        const boutonReinitialiser = document.getElementById('bouton-reinitialiser');
+        const scoreActuelEl = document.getElementById('score-actuel');
+        const meilleurScoreEl = document.getElementById('meilleur-score');
+        const niveauEl = document.getElementById('niveau');
+        const messageEl = document.getElementById('message');
+
+        // === VARIABLES DU JEU ===
+        let sequence = [];
+        let sequenceJoueur = [];
+        let niveau = 1;
+        let scoreActuel = 0;
+        let meilleurScore = localStorage.getItem('simonMeilleurScore') || 0;
+        let tourJoueur = false;
+        let jeuDemarre = false;
+
+        // === INITIALISATION ===
+        function initialiser() {
+            meilleurScoreEl.textContent = meilleurScore;
+            boutonReinitialiser.disabled = true;
+            
+            // Événements pour les boutons de couleur
+            boutonsCouleur.forEach(bouton => {
+                bouton.addEventListener('click', gererClicCouleur);
+            });
+            
+            // Événements pour les boutons de contrôle
+            boutonDemarrer.addEventListener('click', demarrerJeu);
+            boutonReinitialiser.addEventListener('click', reinitialiserJeu);
+        }
+
+        // === DÉMARRER LE JEU ===
+        function demarrerJeu() {
+            if (jeuDemarre) return;
+            
+            jeuDemarre = true;
+            sequence = [];
+            sequenceJoueur = [];
+            niveau = 1;
+            scoreActuel = 0;
+            scoreActuelEl.textContent = scoreActuel;
+            niveauEl.textContent = `Niveau: ${niveau}`;
+            messageEl.textContent = "Regardez la séquence...";
+            boutonDemarrer.disabled = true;
+            boutonReinitialiser.disabled = false;
+            
+            niveauSuivant();
+        }
+
+        // === NIVEAU SUIVANT ===
+        function niveauSuivant() {
+            sequenceJoueur = [];
+            tourJoueur = false;
+            
+            // Ajouter une nouvelle couleur à la séquence
+            const couleurs = ['rouge', 'bleu', 'vert', 'jaune'];
+            const couleurAleatoire = couleurs[Math.floor(Math.random() * couleurs.length)];
+            sequence.push(couleurAleatoire);
+            
+            // Afficher la séquence
+            afficherSequence();
+        }
+
+        // === AFFICHER LA SÉQUENCE ===
+        function afficherSequence() {
+            let i = 0;
+            const interval = setInterval(() => {
+                if (i >= sequence.length) {
+                    clearInterval(interval);
+                    tourJoueur = true;
+                    messageEl.textContent = "À votre tour !";
+                    return;
+                }
+                
+                const couleur = sequence[i];
+                activerBouton(couleur);
+                i++;
+            }, 800);
+        }
+
+        // === ACTIVER UN BOUTON (ANIMATION) ===
+        function activerBouton(couleur) {
+            const bouton = document.getElementById(couleur);
+            bouton.classList.add('active');
+            
+            // Son simple (on améliorera dans le prochain commit)
+            jouerSon(couleur);
+            
+            setTimeout(() => {
+                bouton.classList.remove('active');
+            }, 500);
+        }
+
+        // === JOUER UN SON SIMPLE ===
+        function jouerSon(couleur) {
+            // Sons basiques - on améliorera avec Web Audio API plus tard
+            const context = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = context.createOscillator();
+            const gainNode = context.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(context.destination);
+            
+            // Fréquences différentes pour chaque couleur
+            const frequences = {
+                rouge: 330,
+                bleu: 440,
+                vert: 550,
+                jaune: 660
+            };
+            
+            oscillator.frequency.value = frequences[couleur];
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, context.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.5);
+            
+            oscillator.start(context.currentTime);
+            oscillator.stop(context.currentTime + 0.5);
+        }
+
+        // === GÉRER LE CLIC SUR UNE COULEUR ===
+        function gererClicCouleur(e) {
+            if (!tourJoueur || !jeuDemarre) return;
+            
+            const couleur = e.target.id;
+            sequenceJoueur.push(couleur);
+            activerBouton(couleur);
+            
+            // Vérifier si la séquence du joueur est correcte
+            verifierSequenceJoueur();
+        }
+
+        // === VÉRIFIER LA SÉQUENCE DU JOUEUR ===
+        function verifierSequenceJoueur() {
+            const indexActuel = sequenceJoueur.length - 1;
+            
+            if (sequenceJoueur[indexActuel] !== sequence[indexActuel]) {
+                // Séquence incorrecte
+                finJeu();
+                return;
+            }
+            
+            // Séquence correcte jusqu'à présent
+            if (sequenceJoueur.length === sequence.length) {
+                // Niveau réussi
+                niveauReussi();
+            }
+        }
+
+        // === NIVEAU RÉUSSI ===
+        function niveauReussi() {
+            scoreActuel += 10;
+            scoreActuelEl.textContent = scoreActuel;
+            niveau++;
+            niveauEl.textContent = `Niveau: ${niveau}`;
+            messageEl.textContent = "Bravo ! Niveau suivant...";
+            
+            // Animation de félicitations
+            messageEl.classList.add('pulse');
+            setTimeout(() => {
+                messageEl.classList.remove('pulse');
+            }, 1000);
+            
+            // Passer au niveau suivant après un délai
+            setTimeout(() => {
+                niveauSuivant();
+            }, 1500);
+        }
+
+        // === FIN DU JEU ===
+        function finJeu() {
+            jeuDemarre = false;
+            tourJoueur = false;
+            messageEl.textContent = "Game Over ! Séquence incorrecte.";
+            
+            // Mettre à jour le meilleur score si nécessaire
+            if (scoreActuel > meilleurScore) {
+                meilleurScore = scoreActuel;
+                meilleurScoreEl.textContent = meilleurScore;
+                localStorage.setItem('simonMeilleurScore', meilleurScore);
+                messageEl.textContent = "Game Over ! Nouveau meilleur score !";
+            }
+            
+            boutonDemarrer.disabled = false;
+            boutonDemarrer.textContent = "REJOUER";
+        }
+
+        // === RÉINITIALISER LE JEU ===
+        function reinitialiserJeu() {
+            jeuDemarre = false;
+            sequence = [];
+            sequenceJoueur = [];
+            niveau = 1;
+            scoreActuel = 0;
+            scoreActuelEl.textContent = scoreActuel;
+            niveauEl.textContent = `Niveau: ${niveau}`;
+            messageEl.textContent = "Appuyez sur DÉMARRER pour jouer";
+            boutonDemarrer.disabled = false;
+            boutonDemarrer.textContent = "DÉMARRER";
+            boutonReinitialiser.disabled = true;
+        }
+
+        // === DÉMARRER AU CHARGEMENT ===
+        window.addEventListener('load', initialiser);
+    </script>
 </body>
-</html> 
+</html>
