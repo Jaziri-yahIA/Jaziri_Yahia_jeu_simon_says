@@ -8,6 +8,11 @@ const meilleurScoreEl = document.getElementById('meilleur-score');
 const niveauEl = document.getElementById('niveau');
 const badgeNiveau = document.getElementById('badge-niveau');
 const messageEl = document.getElementById('message');
+const btnToggleTheme = document.getElementById('toggle-theme');
+//ajout du dark mode
+btnToggleTheme && btnToggleTheme.addEventListener('click', () => {
+  document.body.classList.toggle('theme-dark');
+});
 
 // === VARIABLES DU JEU ===
 let sequence = [];

@@ -261,3 +261,9 @@
                 justify-content: center;
             }
         }
+        /* thèmes via classe .theme-dark sur <body> */
+body.theme-dark {
+  background: linear-gradient(135deg, #0f1724, #2c1a1a, #2f2b1f);
+  color: #e6eef6;
+}
+body.theme-dark .jeu-container { background: rgba(20,25,30,0.95); color:#e6eef6; box-shadow:0 10px 30px rgba(0,0,0,0.6); }
