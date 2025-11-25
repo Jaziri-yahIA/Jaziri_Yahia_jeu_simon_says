@@ -19,7 +19,32 @@ let tourJoueur = false;
 let jeuDemarre = false;
 let jeuEnPause = false;
 
-// === INITIALISATION DU JEU ===
+// ========================
+let timeoutInactivite;
+const delaiInactivite = 10000; // 10 secondes
+
+function demarrerTimeoutInactivite() {
+    /**
+     * Si le joueur reste inactif trop longtemps, il perd le niveau
+     */
+    arreterTimeoutInactivite();
+    
+    timeoutInactivite = setTimeout(() => {
+        if (tourJoueur && jeuDemarre && !jeuEnPause) {
+            afficherMessage("⏰ Temps écoulé ! Trop lent...");
+            finPartie();
+        }
+    }, delaiInactivite);
+}
+
+function arreterTimeoutInactivite() {
+    if (timeoutInactivite) {
+        clearTimeout(timeoutInactivite);
+    }
+}
+// =======================================
+
+
 function initialiserJeu() {
     meilleurScoreEl.textContent = meilleurScore;
     boutonReinitialiser.disabled = true;
@@ -29,7 +54,6 @@ function initialiserJeu() {
     mettreAJourBadgeNiveau();
 }
 
-// === CONFIGURATION DES ÉVÉNEMENTS ===
 function configurerEvenements() {
     boutonsCouleur.forEach(bouton => {
         bouton.addEventListener('click', gererClicCouleur);
@@ -46,7 +70,6 @@ function configurerEvenements() {
     });
 }
 
-// === DÉMARRAGE DU JEU ===
 function demarrerJeu() {
     if (jeuDemarre) return;
 
@@ -66,17 +89,10 @@ function demarrerJeu() {
     preparerNiveauSuivant();
 }
 
-// === PRÉPARATION D'UN NOUVEAU NIVEAU ===
 function preparerNiveauSuivant() {
-    /* 
-              À chaque niveau, on ajoute une nouvelle couleur à la séquence
-              La difficulté augmente progressivement :
-              - Niveaux 1-5 : 1 couleur ajoutée
-              - Niveaux 6-10 : 2 couleurs ajoutées
-              - Niveaux 11+ : 3 couleurs ajoutées
-             */
     sequenceJoueur = [];
     tourJoueur = false;
+    arreterTimeoutInactivite(); //  Arrêt du timeout
 
     const couleurs = ['rouge', 'bleu', 'vert', 'jaune'];
     let nombreNouvellesCouleurs = 1;
@@ -93,12 +109,7 @@ function preparerNiveauSuivant() {
     afficherSequence();
 }
 
-// === AFFICHAGE DE LA SÉQUENCE PAR SIMON ===
 function afficherSequence() {
-    /**
-     Simon affiche la séquence couleur par couleur
-     La vitesse d'affichage diminue avec les niveaux pour augmenter la difficulté
-    */
     let index = 0;
     const vitesseAffichage = Math.max(300, 800 - (niveau * 30));
 
@@ -108,6 +119,7 @@ function afficherSequence() {
                 clearInterval(interval);
                 tourJoueur = true;
                 afficherMessage("À votre tour !");
+                demarrerTimeoutInactivite(); //  Démarre timeout
             }
             return;
         }
@@ -118,7 +130,6 @@ function afficherSequence() {
     }, vitesseAffichage);
 }
 
-// === ACTIVATION D'UN BOUTON AVEC EFFETS (visuel) ===
 function activerBoutonAvecEffets(couleur) {
     const bouton = document.getElementById(couleur);
     if (!bouton) return;
@@ -130,7 +141,6 @@ function activerBoutonAvecEffets(couleur) {
     }, 400);
 }
 
-// === GESTION DES INTERACTIONS DU JOUEUR ===
 function gererClicCouleur(e) {
     if (!tourJoueur || !jeuDemarre || jeuEnPause) return;
 
@@ -138,12 +148,13 @@ function gererClicCouleur(e) {
     if (!couleur) return;
 
     sequenceJoueur.push(couleur);
+    
+    demarrerTimeoutInactivite(); //  Reset à chaque action
+    
     activerBoutonAvecEffets(couleur);
-
     verifierSequenceJoueur();
 }
 
-// === VÉRIFICATION DE LA SÉQUENCE DU JOUEUR ===
 function verifierSequenceJoueur() {
     const indexActuel = sequenceJoueur.length - 1;
 
@@ -157,7 +168,6 @@ function verifierSequenceJoueur() {
     }
 }
 
-// === TRAITEMENT D'UN NIVEAU RÉUSSI ===
 function niveauReussi() {
     const pointsBase = 10;
     const bonusNiveau = Math.floor(niveau / 3) * 5;
@@ -176,10 +186,10 @@ function niveauReussi() {
     }, 1500);
 }
 
-// === GESTION DE LA FIN DE PARTIE ===
 function finPartie() {
     jeuDemarre = false;
     tourJoueur = false;
+    arreterTimeoutInactivite(); // Arrêt timeout
 
     afficherMessage("Erreur ! Séquence incorrecte.");
     messageEl.classList.add('shake');
@@ -199,18 +209,21 @@ function finPartie() {
     }, 1000);
 }
 
-// === SYSTÈME DE PAUSE ===
 function basculerPause() {
     if (!jeuDemarre) return;
 
     jeuEnPause = !jeuEnPause;
 
     if (jeuEnPause) {
+        arreterTimeoutInactivite(); //  Arrêt en pause
         afficherMessage("Jeu en pause");
-        boutonPause.innerHTML = '<span>▶️</span> REPRENDRE';
-    } else {
+        boutonPause.textContent = "REPRENDRE";    
+ } else {
         afficherMessage(tourJoueur ? "À votre tour !" : "Regardez la séquence...");
-        boutonPause.innerHTML = '<span>⏸️</span> PAUSE';
+        boutonPause.textContent = "PAUSE";  
+        if (tourJoueur) {
+            demarrerTimeoutInactivite(); // Redémarrage
+        }
     }
 }
 
@@ -251,13 +264,15 @@ function reinitialiserJeu() {
     sequenceJoueur = [];
     niveau = 1;
     scoreActuel = 0;
+    arreterTimeoutInactivite(); //  Arrêt timeout
+    
     mettreAJourInterface();
     afficherMessage("Prêt à jouer ? Appuyez sur DÉMARRER");
     boutonDemarrer.disabled = false;
     boutonDemarrer.textContent = "DÉMARRER";
     boutonReinitialiser.disabled = true;
     boutonPause.disabled = true;
-    boutonPause.innerHTML = '<span>⏸️</span> PAUSE';
+     boutonPause.textContent = "PAUSE";
 }
 
 // === INITIALISATION ===
