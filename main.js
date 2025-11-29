@@ -8,11 +8,6 @@ const meilleurScoreEl = document.getElementById('meilleur-score');
 const niveauEl = document.getElementById('niveau');
 const badgeNiveau = document.getElementById('badge-niveau');
 const messageEl = document.getElementById('message');
-const btnToggleTheme = document.getElementById('toggle-theme');
-//ajout du dark mode
-btnToggleTheme && btnToggleTheme.addEventListener('click', () => {
-  document.body.classList.toggle('theme-dark');
-});
 
 // === VARIABLES DU JEU ===
 let sequence = [];
@@ -24,16 +19,18 @@ let tourJoueur = false;
 let jeuDemarre = false;
 let jeuEnPause = false;
 
-// ========================
+// === TIMEOUT D'INACTIVITÉ ===
 let timeoutInactivite;
 const delaiInactivite = 10000; // 10 secondes
 
+// === FONCTION SLEEP POUR ASYNC/AWAIT ===
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// === GESTION DU TIMEOUT ===
 function demarrerTimeoutInactivite() {
-    /**
-     * Si le joueur reste inactif trop longtemps, il perd le niveau
-     */
     arreterTimeoutInactivite();
-    
     timeoutInactivite = setTimeout(() => {
         if (tourJoueur && jeuDemarre && !jeuEnPause) {
             afficherMessage("⏰ Temps écoulé ! Trop lent...");
@@ -47,9 +44,8 @@ function arreterTimeoutInactivite() {
         clearTimeout(timeoutInactivite);
     }
 }
-// =======================================
 
-
+// === INITIALISATION ===
 function initialiserJeu() {
     meilleurScoreEl.textContent = meilleurScore;
     boutonReinitialiser.disabled = true;
@@ -75,6 +71,7 @@ function configurerEvenements() {
     });
 }
 
+// === DÉMARRAGE DU JEU ===
 function demarrerJeu() {
     if (jeuDemarre) return;
 
@@ -94,10 +91,11 @@ function demarrerJeu() {
     preparerNiveauSuivant();
 }
 
+// === PRÉPARATION D'UN NOUVEAU NIVEAU ===
 function preparerNiveauSuivant() {
     sequenceJoueur = [];
     tourJoueur = false;
-    arreterTimeoutInactivite(); //  Arrêt du timeout
+    arreterTimeoutInactivite();
 
     const couleurs = ['rouge', 'bleu', 'vert', 'jaune'];
     let nombreNouvellesCouleurs = 1;
@@ -114,25 +112,31 @@ function preparerNiveauSuivant() {
     afficherSequence();
 }
 
-function afficherSequence() {
-    let index = 0;
+// === AFFICHAGE DE LA SÉQUENCE AVEC ASYNC/AWAIT ===
+async function afficherSequence() {
+    /**
+     * Nouvelle version utilisant async/await au lieu de setInterval
+     * Plus lisible et plus facile à contrôler
+     */
     const vitesseAffichage = Math.max(300, 800 - (niveau * 30));
 
-    const interval = setInterval(() => {
-        if (index >= sequence.length || jeuEnPause) {
-            if (index >= sequence.length) {
-                clearInterval(interval);
-                tourJoueur = true;
-                afficherMessage("À votre tour !");
-                demarrerTimeoutInactivite(); //  Démarre timeout
-            }
-            return;
+    for (let i = 0; i < sequence.length; i++) {
+        // Gestion de la pause
+        while (jeuEnPause) {
+            await sleep(100); // Attend 100ms et vérifie à nouveau
         }
 
-        const couleur = sequence[index];
+        const couleur = sequence[i];
         activerBoutonAvecEffets(couleur);
-        index++;
-    }, vitesseAffichage);
+        
+        // Attend la durée définie avant de passer à la couleur suivante
+        await sleep(vitesseAffichage);
+    }
+
+    // Après avoir affiché toute la séquence
+    tourJoueur = true;
+    afficherMessage("À votre tour !");
+    demarrerTimeoutInactivite();
 }
 
 function activerBoutonAvecEffets(couleur) {
@@ -146,6 +150,7 @@ function activerBoutonAvecEffets(couleur) {
     }, 400);
 }
 
+// === GESTION DES INTERACTIONS ===
 function gererClicCouleur(e) {
     if (!tourJoueur || !jeuDemarre || jeuEnPause) return;
 
@@ -153,9 +158,7 @@ function gererClicCouleur(e) {
     if (!couleur) return;
 
     sequenceJoueur.push(couleur);
-    
-    demarrerTimeoutInactivite(); //  Reset à chaque action
-    
+    demarrerTimeoutInactivite();
     activerBoutonAvecEffets(couleur);
     verifierSequenceJoueur();
 }
@@ -163,16 +166,19 @@ function gererClicCouleur(e) {
 function verifierSequenceJoueur() {
     const indexActuel = sequenceJoueur.length - 1;
 
+    // Vérifie si la couleur cliquée correspond à la séquence
     if (sequenceJoueur[indexActuel] !== sequence[indexActuel]) {
         finPartie();
         return;
     }
 
+    // Vérifie si le joueur a reproduit toute la séquence
     if (sequenceJoueur.length === sequence.length) {
         niveauReussi();
     }
 }
 
+// === GESTION DE LA RÉUSSITE ===
 function niveauReussi() {
     const pointsBase = 10;
     const bonusNiveau = Math.floor(niveau / 3) * 5;
@@ -191,10 +197,11 @@ function niveauReussi() {
     }, 1500);
 }
 
+// === GESTION DE L'ÉCHEC ===
 function finPartie() {
     jeuDemarre = false;
     tourJoueur = false;
-    arreterTimeoutInactivite(); // Arrêt timeout
+    arreterTimeoutInactivite();
 
     afficherMessage("Erreur ! Séquence incorrecte.");
     messageEl.classList.add('shake');
@@ -214,20 +221,21 @@ function finPartie() {
     }, 1000);
 }
 
+// === SYSTÈME DE PAUSE ===
 function basculerPause() {
     if (!jeuDemarre) return;
 
     jeuEnPause = !jeuEnPause;
 
     if (jeuEnPause) {
-        arreterTimeoutInactivite(); //  Arrêt en pause
+        arreterTimeoutInactivite();
         afficherMessage("Jeu en pause");
-        boutonPause.textContent = "REPRENDRE";    
- } else {
+        boutonPause.textContent = "REPRENDRE";
+    } else {
         afficherMessage(tourJoueur ? "À votre tour !" : "Regardez la séquence...");
-        boutonPause.textContent = "PAUSE";  
+        boutonPause.textContent = "PAUSE";
         if (tourJoueur) {
-            demarrerTimeoutInactivite(); // Redémarrage
+            demarrerTimeoutInactivite();
         }
     }
 }
@@ -262,6 +270,7 @@ function mettreAJourBadgeNiveau() {
     badgeNiveau.style.background = couleur;
 }
 
+// === RÉINITIALISATION ===
 function reinitialiserJeu() {
     jeuDemarre = false;
     jeuEnPause = false;
@@ -269,7 +278,7 @@ function reinitialiserJeu() {
     sequenceJoueur = [];
     niveau = 1;
     scoreActuel = 0;
-    arreterTimeoutInactivite(); //  Arrêt timeout
+    arreterTimeoutInactivite();
     
     mettreAJourInterface();
     afficherMessage("Prêt à jouer ? Appuyez sur DÉMARRER");
@@ -277,8 +286,8 @@ function reinitialiserJeu() {
     boutonDemarrer.textContent = "DÉMARRER";
     boutonReinitialiser.disabled = true;
     boutonPause.disabled = true;
-     boutonPause.textContent = "PAUSE";
+    boutonPause.textContent = "PAUSE";
 }
 
-// === INITIALISATION ===
+// === DÉMARRAGE ===
 window.addEventListener('load', initialiserJeu);
